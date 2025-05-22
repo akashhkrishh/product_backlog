@@ -1,0 +1,6 @@
+Confirmed | In transit | Delivered | Cancelled | Returned
+Confirmed | Delivered | In transit | Returned | Cancelled
+Cancelled | Returned | Delivered | In transit | Confirmed
+Confirmed | In transit | Delivered | Cancelled | Returned
+Confirmed | Delivered | In transit | Returned | Cancelled
+Cancelled | Returned | Delivered | In transit | Confirmed

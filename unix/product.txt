@@ -1,0 +1,7 @@
+Product Id|Product Name|Description|Category|Price
+P001|Laptop|Dell Inspiron 15 5000|Electronics|800
+P002|Smartphone|Samsung Galaxy S21|Electronics|999
+P003|Headphones|Sony WH-1000XM4|Audio|350
+P004|Tablet|Apple iPad Pro 11|Electronics|899
+P005|Smartwatch|Apple Watch Series 7|Wearables|399
+P006|Camera|Canon EOS Rebel T7|Photography|550
