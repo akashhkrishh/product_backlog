@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Orders</title>
+</head>
+
+<body>
+    <div>
+        <div>
+            <button onclick="loadHome()">Home</button>
+            <button onclick="viewCart()">My Cart</button>
+            <button onclick="viewOrders()">My Orders</button>
+        </div>
+        <div>
+            <span id="username">Welcome, <span id="user-name"></span></span>
+            <img id="profile-icon" src="path/to/profile-icon.png" alt="Profile" onclick="viewProfile()" />
+        </div>
+    </div>
+ 
+    <div>
+        <select id="order-filter" onchange="filterOrders()">
+            <option value="all">All Categories</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="in-transit">In Transit</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+        </select>
+    </div>
+
+  
+    <div id="orders-section">
+
+  
+        <div id="confirmed-orders" style="display: none;">
+            <h3>Confirmed Orders</h3>
+            <table >
+                <thead>
+                    <tr>
+                        <th>Order Id</th>
+                        <th>Ordered Item</th>
+                        <th>Ordered Date</th>
+                        <th>Arriving Date</th>
+                        <th>Address</th>
+                        <th>Update</th>
+                        <th>Delete</th>
+                    </tr>
+                </thead>
+                <tbody id="confirmed-orders-body"></tbody>
+            </table>
+        </div>
+ 
+        <div id="in-transit-orders" style="display: none;">
+            <h3>In Transit Orders</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order Id</th>
+                        <th>Ordered Item</th>
+                        <th>Ordered Date</th>
+                        <th>Arriving Date</th>
+                        <th>Address</th>
+                    </tr>
+                </thead>
+                <tbody id="in-transit-orders-body"></tbody>
+            </table>
+        </div>
+ 
+        <div id="delivered-orders" style="display: none;">
+            <h3>Delivered Orders</h3>
+            <table >
+                <thead>
+                    <tr>
+                        <th>Order Id</th>
+                        <th>Ordered Item</th>
+                        <th>Ordered Date</th>
+                        <th>Delivered Date</th>
+                        <th>Address</th>
+                        <th>Feedback</th>
+                        <th>Return</th>
+                    </tr>
+                </thead>
+                <tbody id="delivered-orders-body"></tbody>
+            </table>
+        </div>
+
+ 
+        <div id="cancelled-orders" style="display: none;">
+            <h3>Cancelled Orders</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order Id</th>
+                        <th>Ordered Item</th>
+                        <th>Ordered Date</th>
+                        <th>Cancelled Date</th>
+                    </tr>
+                </thead>
+                <tbody id="cancelled-orders-body"></tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script src="../scripts/orders.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Home Page</title>
+</head>
+
+<body>
+
+  <div>
+    <div>
+      <button onclick="loadHome()">Home</button>
+      <button onclick="viewCart()">My Cart</button>
+      <button onclick="viewOrders()">My Orders</button>
+    </div>
+
+    <div>
+      <span id="username">Welcome, <span id="user-name"></span></span>
+      <img id="profile-icon" src="./profile-icon.png" alt="Profile" onclick="viewProfile()" />
+    </div>
+  </div>
+
+  <div>
+    <select id="category-filter" onchange="filterProducts()">
+      <option value="">Select Category</option>
+      <option value="fashion">Fashion</option>
+      <option value="electronics">Electronics</option>
+      <option value="homedecor">Home</option>
+      <option value="stationary">Stationary</option>
+    </select>
+
+    <div id="product-list">
+    </div>
+  </div>
+
+  <script src="../scripts/home.js"></script>
+</body>
+
+</html>

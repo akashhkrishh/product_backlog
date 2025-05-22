@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice</title>
+</head>
+
+<body>
+
+    <div>
+        <button onclick="window.location.href = 'home.html'">Home</button>
+        <button onclick="window.location.href = 'cart.html'">My Cart</button>
+        <button onclick="window.location.href = 'orders.html'">My Orders</button>
+    </div>
+
+    <h1>Invoice</h1>
+
+    <div id="invoice-details"> 
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () { 
+            const invoice = JSON.parse(localStorage.getItem('invoice'));
+
+            if (invoice) {
+                const invoiceDetails = `
+                    <p><strong>Order ID:</strong> ${invoice.orderId}</p>
+                    <p><strong>Payment Method:</strong> ${invoice.paymentMethod}</p>
+                    <h3>Payment Details:</h3>
+                    <ul>
+                        ${invoice.paymentMethod === 'UPI' ? `
+                            <li><strong>UPI ID:</strong> ${invoice.details.upiId}</li>
+                        ` : `
+                            <li><strong>Card Number:</strong> ${invoice.details.cardNumber}</li>
+                            <li><strong>Card Holder Name:</strong> ${invoice.details.cardHolderName}</li>
+                            <li><strong>Expiry Date:</strong> ${invoice.details.expiryDate}</li>
+                            <li><strong>CVV:</strong> ${invoice.details.cvv}</li>
+                        `}
+                    </ul>
+                    <button onclick="window.location.href = 'orders.html'">Go to My Orders</button>
+                `;
+                 
+                document.getElementById('invoice-details').innerHTML = invoiceDetails;
+            } else {
+                alert("No invoice data found.");
+                window.location.href = 'home.html';  
+            }
+        });
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Home</title>
+</head>
+
+<body>
+    <div>
+        <div>
+            <div>
+                <button onclick="window.location.href = 'admin-home.html';">Home</button>
+                <button onclick="viewAddProducts()">Add Products</button>
+                <button onclick="viewAllProducts()">View All Products</button>
+                <button onclick="viewAllCustomers()">View All Customers</button>
+                <button onclick="viewAllOrders()">View All Orders</button>
+            </div>
+
+            <div>
+                <span id="admin-name">Welcome, Admin</span>
+                <button onclick="logOut()">Logout</button>
+            </div>
+        </div>
+
+        <div id="content"> 
+            <p>Welcome to the Admin Dashboard</p>
+        </div>
+    </div>
+
+    <script src="../scripts/admin-home.js"></script>
+</body>
+
+</html>

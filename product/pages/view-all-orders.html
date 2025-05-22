@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>View All Orders</title>
+</head>
+
+<body style="padding: 24px; font-family: Arial, sans-serif;">
+
+ 
+    <div style="display: flex; justify-content: space-between; margin-bottom: 24px;">
+        <div>
+            <button onclick="window.location.href='admin-home.html'">Home</button>
+            <button onclick="window.location.href='add-product.html'">Add Products</button>
+            <button onclick="window.location.href='view-all-products.html'">View All Products</button>
+            <button onclick="window.location.href='view-all-customers.html'">View All Customers</button>
+            <button onclick="window.location.href='view-all-orders.html'">View All Orders</button>
+        </div>
+        <div>
+            <span id="admin-name">Welcome, Admin</span>
+            <button onclick="logOut()" style="margin-left: 16px;">Logout</button>
+        </div>
+    </div>
+
+    <h1 style="font-size: 24px; margin-bottom: 20px;">All Orders</h1>
+ 
+    <div id="order-categories">
+
+    
+        <h2 style="font-size: 20px; margin-top: 32px;">Confirmed Orders</h2>
+        <table cellpadding="8" cellspacing="0" style="width: 100%; margin-top: 8px;">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Ordered Item</th>
+                    <th>Ordered Date</th>
+                    <th>Arriving Date</th>
+                    <th>Address</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="confirmed-orders-table-body"> 
+            </tbody>
+        </table>
+
+        <h2 style="font-size: 20px; margin-top: 32px;">In Transit Orders</h2>
+        <table cellpadding="8" cellspacing="0" style="width: 100%; margin-top: 8px;">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Ordered Item</th>
+                    <th>Ordered Date</th>
+                    <th>Arriving Date</th>
+                    <th>Address</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="in-transit-orders-table-body"> 
+            </tbody>
+        </table>
+
+        <h2 style="font-size: 20px; margin-top: 32px;">Delivered Orders</h2>
+        <table cellpadding="8" cellspacing="0" style="width: 100%; margin-top: 8px;">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Ordered Item</th>
+                    <th>Ordered Date</th>
+                    <th>Delivered Date</th>
+                    <th>Address</th>
+                    <th>Feedback</th>
+                </tr>
+            </thead>
+            <tbody id="delivered-orders-table-body"> 
+            </tbody>
+        </table>
+
+        <h2 style="font-size: 20px; margin-top: 32px;">Cancelled Orders</h2>
+        <table cellpadding="8" cellspacing="0" style="width: 100%; margin-top: 8px;">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Ordered Item</th>
+                    <th>Ordered Date</th>
+                    <th>Cancelled Date</th>
+                </tr>
+            </thead>
+            <tbody id="cancelled-orders-table-body"> 
+            </tbody>
+        </table>
+
+        <h2 style="font-size: 20px; margin-top: 32px;">Returned Orders</h2>
+        <table cellpadding="8" cellspacing="0" style="width: 100%; margin-top: 8px;">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Ordered Item</th>
+                    <th>Ordered Date</th>
+                    <th>Returned Date</th>
+                </tr>
+            </thead>
+            <tbody id="returned-orders-table-body"> 
+            </tbody>
+        </table>
+
+    </div>
+
+    <script src="../scripts/view-all-orders.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View All Customers</title>
+</head>
+
+<body>
+
+    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+        <div>
+            <button onclick="window.location.href='admin-home.html'">Home</button>
+            <button onclick="window.location.href='add-product.html'">Add Products</button>
+            <button onclick="window.location.href='view-all-products.html'">View All Products</button>
+            <button onclick="window.location.href='view-all-customers.html'">View All Customers</button>
+            <button onclick="window.location.href='view-all-orders.html'">View All Orders</button>
+        </div>
+        <div>
+            <span id="admin-name">Welcome, Admin</span>
+            <button onclick="logOut()" style="margin-left: 20px;">Logout</button>
+        </div>
+    </div>
+
+    <h1>All Customers</h1>
+
+    <!-- Customers Table -->
+    <table cellpadding="10" cellspacing="0" style="width: 100%; margin-top: 20px;">
+        <thead>
+            <tr>
+                <th>User ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Address</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="customer-table-body">
+            <!-- Customer rows will be injected here by JS -->
+        </tbody>
+    </table>
+
+    <script src="../scripts/view-all-customers.js"></script>
+</body>
+
+</html>

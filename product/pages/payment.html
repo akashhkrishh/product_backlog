@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment</title>
+</head>
+
+<body>
+    <div>
+        <button onclick="window.location.href = 'home.html'">Home</button>
+        <button onclick="window.location.href = 'cart.html'">My Cart</button>
+        <button onclick="window.location.href = 'orders.html'">My Orders</button>
+    </div>
+    <div>
+        <p>Welcome <span id="user-name"></span></p>
+        <img src="profile-icon.png" alt="Profile Icon" onclick="window.location.href = 'profile.html'">
+    </div>
+    <h2>Payment</h2>
+    <div>
+        <label for="payment-method">Mode of Payment:</label>
+        <select id="payment-method" onchange="togglePaymentFields()">
+            <option value="UPI">UPI</option>
+            <option value="Credit Card">Credit Card</option>
+        </select>
+    </div>
+    <div id="upi-section">
+        <label for="upi-id">UPI ID:</label>
+        <input type="text" id="upi-id" placeholder="Enter your UPI ID">
+    </div>
+
+    <div id="credit-card-section" style="display: none;">
+        <label for="card-number">Card Number:</label>
+        <input type="text" id="card-number" placeholder="Enter 16-digit card number" maxlength="16">
+
+        <label for="card-holder-name">Card Holder Name:</label>
+        <input type="text" id="card-holder-name" placeholder="Enter card holder name" minlength="10">
+
+        <label for="expiry-date">Expiry Date (MM/YY):</label>
+        <input type="text" id="expiry-date" placeholder="MM/YY">
+
+        <label for="cvv">CVV:</label>
+        <input type="text" id="cvv" placeholder="Enter 3-digit CVV" maxlength="3">
+    </div>
+
+    <button onclick="makePayment()">Make Payment</button>
+    <button onclick="window.location.href = 'cart.html'">Back to My Cart</button>
+
+    <script src="../scripts/payment.js"></script>
+
+</body>
+
+</html>

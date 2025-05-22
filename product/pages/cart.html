@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Cart</title>
+</head>
+
+<body>
+    <div>
+        <div>
+            <button onclick="loadHome()">Home</button>
+            <button onclick="viewCart()">My Cart</button>
+            <button onclick="viewOrders()">My Orders</button>
+        </div>
+        <div>
+            <span id="username">Welcome, <span id="user-name"></span></span>
+            <img id="profile-icon" src="./profile-icon.png" alt="Profile" onclick="viewProfile()">
+        </div>
+    </div>
+    <div>
+        <h2>My Cart</h2>
+        <div id="cart-items">
+        </div>
+        <div>
+            <h3>Shipping Address</h3>
+            <p id="address">Loading address...</p>
+            <button onclick="editAddress()">Edit Address</button>
+        </div>
+        <button onclick="proceedToPayment()">Proceed to Payment</button>
+    </div>
+
+    <script src="../scripts/cart.js"></script>
+
+</body>
+
+</html>

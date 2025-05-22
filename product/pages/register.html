@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register</title>
+</head>
+<style>
+    .hidden {
+        display: none;
+    }
+</style>
+
+<body>
+
+    <div>
+
+        <div id="register-form">
+            <h2>Register</h2>
+            <form onsubmit="return registerUser(event)">
+                <label for="name">Name</label><br>
+                <input type="text" id="name" maxlength="50" required /><br><br>
+
+                <label for="email">Email</label><br>
+                <input type="email" id="email" required /><br><br>
+
+                <label for="address">Address</label><br>
+                <textarea id="address" maxlength="100" required></textarea><br><br>
+
+                <label for="password">Password</label><br>
+                <input type="password" id="password" minlength="10" maxlength="30" required /><br><br>
+
+                <button type="submit">Register</button>
+            </form>
+        </div>
+
+        <div id="acknowledgment" class="hidden">
+            <p>Registration successful.</p>
+            <p><strong>Customer ID:</strong> <span id="custId"></span></p>
+            <p><strong>Name:</strong> <span id="custName"></span></p>
+            <p><strong>Email:</strong> <span id="custEmail"></span></p>
+
+            <button onclick="goToLogin()">Back to Login</button>
+        </div>
+
+    </div>
+
+    <script src="../scripts/register.js"></script>
+</body>
+
+</html>
