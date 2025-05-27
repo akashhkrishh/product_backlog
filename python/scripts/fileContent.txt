@@ -1,0 +1,1539 @@
+# 2 -6
+from configs.database import Database
+
+__all__ = [
+    'Database'
+]
+
+# 9 -18
+from databases import UserData, SessionData
+from databases.order_data import OrderData
+from databases.product_data import ProductData
+
+class Database:
+    def __init__(self):
+        self.user = UserData()
+        self.session = SessionData()
+        self.product = ProductData()
+        self.order = OrderData()
+
+# 21 -29
+from controllers.auth_controller import AuthController
+from controllers.admin_controller import AdminController
+from controllers.customer_controller import CustomerController
+
+__all__ = [
+    "AuthController",
+    "AdminController",
+    'CustomerController',
+]
+
+# 32 - 187
+from configs import Database
+from services import AdminService
+from utils import console
+from enums import Category, OrderStatus
+
+
+class AdminController:
+    def __init__(self, database: Database) -> None:
+        self.__database = database
+        self.adminService = AdminService(self.__database)
+
+    def adminMenu(self):
+        while True:
+            print("Admin Dashboard")
+            print(
+                "1. Add Product\n"
+                "2. View Products\n"
+                "3. Update a Product\n"
+                "4. Delete a Product\n"
+                "5. Search by Product\n"
+                "6. View All Customers\n"
+                "7. View All Orders\n"
+                "8. Search by Order\n"
+                "9. Logout"
+            )
+            try:
+                choice = int(input("Enter your choice: "))
+                print(choice)
+                if choice == 1:
+                    print("Add Product")
+                    self.add_product()
+                elif choice == 2:
+                    self.adminService.viewAllProducts()
+                elif choice == 3:
+                    self.update_product()
+                elif choice == 4:
+                    self.delete_product()
+                elif choice == 5:
+                    self.search_by_product()
+                elif choice == 6:
+                    self.adminService.viewAllCustomers()
+                elif choice == 7:
+                    self.adminService.viewAllOrders()
+                elif choice == 8:
+                    self.search_by_order()
+                elif choice == 9:
+                    console.clear()
+                    print("Logged out successfully.")
+                    break
+                else:
+                    console.clear()
+                    print("Invalid choice. Please try again.")
+
+            except ValueError:
+                console.clear()
+                print("Please enter a valid number.")
+
+    def add_product(self):
+        name = input("Enter product name: ").strip()
+        price = float(input("Enter product price: ").strip())
+
+        # Show categories list and ask for category
+        print("Choose category:")
+        for idx, cat in enumerate(Category):
+            print(f"{idx + 1}. {cat.name.title()}")
+        cat_choice = int(input("Enter category number: ").strip())
+        category = list(Category)[cat_choice - 1]
+
+        description = input("Enter product description: ").strip()
+
+        success = self.adminService.handleAddProduct(name, price, category, description)
+        if success:
+            print("Product added successfully.")
+        else:
+            print("Failed to add product. Possibly duplicate name.")
+
+    def update_product(self):
+        product_id = int(input("Enter product ID to update: ").strip())
+
+        print("Leave input blank if no change is needed.")
+
+        name = input("Enter new name (or press Enter to skip): ").strip()
+        name = name if name else None
+
+        price_input = input("Enter new price (or press Enter to skip): ").strip()
+        price = float(price_input) if price_input else None
+
+        print("Choose new category (or press Enter to skip):")
+        for idx, cat in enumerate(Category):
+            print(f"{idx + 1}. {cat.name.title()}")
+        cat_choice_input = input("Enter category number or press Enter to skip: ").strip()
+        category = list(Category)[int(cat_choice_input) - 1] if cat_choice_input else None
+
+        description = input("Enter new description (or press Enter to skip): ").strip()
+        description = description if description else None
+
+        updated = self.adminService.updateProduct(product_id, name, price, category, description)
+        if updated:
+            print("Product updated successfully.")
+        else:
+            print("Product not found or update failed.")
+
+    def delete_product(self):
+        product_id = int(input("Enter product ID to delete: ").strip())
+        deleted = self.adminService.deleteProduct(product_id)
+        if deleted:
+            print("Product deleted successfully.")
+        else:
+            print("Product not found.")
+
+    def search_by_product(self):
+        pID = int(input("Enter product id to search products: "))
+        results = self.adminService.searchByProduct(pID)
+        if results:
+            print(f"Found {len(results)} product(s):")
+            for product in results:
+                print(product)
+        else:
+            print("No products found matching the keyword.")
+
+    def search_by_order(self):
+        try:
+            order_id = int(input("Enter Order ID to search: ").strip())
+        except ValueError:
+            print("Invalid input. Order ID must be a number.")
+            return
+
+        order = self.adminService.searchByOrderId(order_id)
+        if order:
+            customer = self.__database.user.get_user_by_id(order.customer_id)
+            if not customer:
+                print("Customer not found for this order.")
+                return
+
+            print("\nOrder Details")
+            print("-" * 100)
+            print(f"{'Order ID':<14} | {'Customer Name':<20} | {'Email':<25} | {'Mobile':<15} | Address")
+            print("-" * 100)
+            print(f"{order.order_id:<14} | {customer.name:<20} | {customer.email:<25} | "
+                  f"{customer.mobile:<15} | {customer.address}")
+            print("-" * 100)
+
+            print("\nOrdered Products")
+            print(f"{'Product Name':<25} | {'Qty':<5} | {'Unit Price':<12} | {'Total Price'}")
+            print("-" * 100)
+
+            grand_total = 0.0
+            for product, qty in order.products:
+                total_price = product.price * qty
+                grand_total += total_price
+                print(f"{product.name:<40} | {qty:<5} | ${product.price:<11.2f} | ${total_price:.2f}")
+
+            print("-" * 100)
+            print(f"{'Grand Total':<40} ${grand_total:.2f}")
+            print("-" * 100)
+        else:
+            print(f"No order found with ID {order_id}.")
+
+# 191 - 354
+from configs import Database
+from controllers.customer_controller import CustomerController
+from controllers.admin_controller import AdminController
+from models import User
+from payloads import GlobalResponse, AdminLoginRequest, CustomerLoginRequest
+from services import AuthService
+from utils import validate_name, validate_email, validate_mobile, validate_address, validate_password, \
+    validate_confirm_password, console
+
+
+def handle_register(user: User) -> User:
+    print("User Registration")
+    while True:
+        name = input("Enter your name: ").strip()
+        if validate_name(name):
+            user.name = name
+            break
+        print("Name with minimum 3 or maximum 50 character")
+
+    while True:
+        email = input("Enter your email: ").strip()
+        if validate_email(email):
+            user.email = email
+            break
+        print("Invalid email. Must contain '@'.")
+
+    while True:
+        try:
+            mobile = input("Enter your mobile: ").strip()
+            if not mobile.isdigit():
+                raise ValueError("Mobile number must contain only digits.")
+
+            if validate_mobile(mobile):
+                user.mobile = mobile
+                break
+            else:
+                print("Mobile number must be exactly 10 digits.")
+        except ValueError as e:
+            print(f"Invalid input: {e}")
+
+    while True:
+        address = input("Enter Address: ").strip()
+        if validate_address(address):
+            user.address = address
+            break
+        else:
+            print("Address must be between 1 and 300 characters.")
+
+    while True:
+        password = input("Enter Password: ").strip()
+        if validate_password(password):
+            confirm = input("Confirm Password: ").strip()
+            if validate_confirm_password(password, confirm):
+                user.password = password
+                break
+            else:
+                print("Passwords do not match.")
+        else:
+            print("Password must contain lowercase, uppercase, and alphabet characters.")
+    return user
+
+def handle_admin_login(request: AdminLoginRequest) -> AdminLoginRequest:
+    while True:
+        email = input("Enter your email: ").strip()
+        if validate_email(email):
+            request.email = email
+            break
+        print("Invalid email. Must contain '@'.")
+
+    while True:
+        password = input("Enter your password: ").strip()
+        if validate_password(password):
+            request.password = password
+            break
+        print("Password must contain lowercase, uppercase, and alphabet characters.")
+    return request
+
+def handle_customer_login(request: CustomerLoginRequest) -> CustomerLoginRequest:
+    while True:
+        try:
+            customerId = int(input("Enter your customerId: ").strip())
+            request.customer_id = customerId
+            break
+        except ValueError:
+            print("Invalid customer ID. Please enter a valid number.")
+
+    while True:
+        password = input("Enter your password: ").strip()
+        if validate_password(password):
+            request.password = password
+            break
+        print("Password must contain lowercase, uppercase, and alphabet characters.")
+    return request
+
+class AuthController:
+    def __init__(self, database : Database) -> None:
+        self.__database = database
+        self.__auth_service = AuthService(self.__database)
+        self.__admin_controller = AdminController(self.__database)
+        self.__customer_controller = CustomerController(self.__database)
+
+    def login(self) -> None:
+        while True:
+            print("Choose LoginType")
+            print(f"1. Customer"
+                  f"\n2. Admin"
+                  f"\n3. Back to Main Menu"
+                  )
+            choice = int(input("Enter your choice: ").strip())
+            if choice == 1:
+                customerRequest = handle_customer_login(CustomerLoginRequest())
+                response: GlobalResponse = self.__auth_service.loginUser(customerRequest)
+                if response.status:
+                    console.clear()
+                    print(response.message)
+                    self.__customer_controller.customerMenu()
+
+                else:
+                    print(response.message)
+                    isContinue = input("\nWould you like to try again? (Y/N): ").lower()
+                    if isContinue == "n":
+                        console.clear()
+                        break
+                    console.clear()
+            elif choice == 2:
+                adminRequest = handle_admin_login(AdminLoginRequest())
+                response: GlobalResponse = self.__auth_service.loginAdmin(adminRequest)
+                if response.status:
+                    console.clear()
+                    print(response.message)
+                    self.__admin_controller.adminMenu()
+                else:
+                    print(response.message)
+                    isContinue = input("\nWould you like to try again? (Y/N): ").lower()
+                    if isContinue == "n":
+                        console.clear()
+                        break
+                    console.clear()
+            elif choice == 3:
+                break
+            else:
+                print("Invalid choice. Please try again.")
+
+
+    def register(self) -> None:
+        while True:
+            newUser = handle_register(User())
+            response: GlobalResponse = self.__auth_service.registerUser(newUser)
+            if response.status:
+                console.clear()
+                print(response.message)
+                print(f"Customer ID: {response.data.user_id}"
+                      f"\nEmail: {response.data.email}"
+                      f"\nMobile: {response.data.mobile}")
+                console.pause()
+                break
+            else:
+                print(response.message)
+                isContinue = input("\nWould you like to try again? (Y/N): ").lower()
+                if isContinue == "n":
+                    console.clear()
+                    break
+                console.clear()
+
+# [356,397]
+from configs import Database
+from services import CustomerService
+
+from utils import console
+
+
+class CustomerController:
+    def __init__(self, database: Database) -> None:
+        self.__database = database
+        self.customerService = CustomerService(self.__database)
+
+    def customerMenu(self):
+        while True:
+
+            print("Customer Dashboard")
+            print(f"1.View products\n"
+                  f"2.Payment\n"
+                  f"3.Previous orders\n"
+                  f"4.View profile\n"
+                  f"5.Logout"
+                  )
+            try:
+                choice = int(input("Enter your choice: "))
+                if choice == 1:
+                    self.customerService.viewProducts()
+                elif choice == 2:
+                    self.customerService.payment()
+                elif choice == 3:
+                    self.customerService.previousOrders()
+                elif choice == 4:
+                    self.customerService.viewProfile()
+                elif choice == 5:
+                    console.clear()
+                    break
+                else:
+                    console.clear()
+                    print("Invalid choice. Please try again.")
+
+            except ValueError:
+                console.clear()
+                print("Please enter a valid number.")
+
+#[399,410]
+from databases.order_data import OrderData
+from databases.product_data import ProductData
+from databases.user_data import UserData
+from databases.session_data import SessionData
+
+__all__ = [
+    'UserData',
+    'SessionData',
+    'OrderData',
+    'ProductData',
+]
+
+# [412,454]
+from typing import List, Optional
+from models import Order
+
+class OrderData:
+    def __init__(self):
+        self.__orders: List[Order] = []
+        self.initialize()
+
+    def initialize(self):
+        pass
+
+    def get_all_orders(self) -> List[Order]:
+        return self.__orders
+
+    def get_order_by_id(self, order_id: int) -> Optional[Order]:
+        for order in self.__orders:
+            if order.order_id == order_id:
+                return order
+        return None
+
+    def save_order(self, order: Order) -> bool:
+        if self.get_order_by_id(order.order_id):
+            return False
+        self.__orders.append(order)
+        return True
+
+    def remove_order(self, order_id: int) -> bool:
+        order = self.get_order_by_id(order_id)
+        if order:
+            self.__orders.remove(order)
+            return True
+        return False
+
+    def update_status(self, order_id: int, new_status) -> bool:
+        order = self.get_order_by_id(order_id)
+        if order:
+            order.status = new_status
+            return True
+        return False
+
+    def get_orders_by_customer_id(self, customer_id: int) -> List[Order]:
+        return [order for order in self.__orders if order.customer_id == customer_id]
+
+# [456,543]
+from typing import List, Optional
+from models import Product
+from enums import Category
+
+class ProductData:
+    def __init__(self):
+        self.__products: List[Product] = []
+        self.initialize()
+
+    def initialize(self):
+        p1 = Product(
+            name="Bluetooth Speaker",
+            price=1999.99,
+            category=Category.ELECTRONICS,
+            description="Portable and waterproof"
+        )
+        p2 = Product(
+            name="Wall Painting",
+            price=799.50,
+            category=Category.HOME_DECOR,
+            description="Canvas artwork for home walls"
+        )
+        p3 = Product(
+            name="Notebook Set",
+            price=249.00,
+            category=Category.STATIONARY,
+            description="Pack of 3 ruled notebooks"
+        )
+        p4 = Product(
+            name="Earphone",
+            price=499.00,
+            category=Category.ELECTRONICS,
+            description="Wired in-ear earphones with mic"
+        )
+        p5 = Product(
+            name="Laptop",
+            price=54999.00,
+            category=Category.ELECTRONICS,
+            description="15.6 inch i5 laptop with 8GB RAM"
+        )
+        p6 = Product(
+            name="TV",
+            price=29999.00,
+            category=Category.ELECTRONICS,
+            description="43-inch 4K Ultra HD Smart LED TV"
+        )
+        p7 = Product(
+            name="Mobile Phone",
+            price=17999.00,
+            category=Category.ELECTRONICS,
+            description="6.5 inch smartphone with 128GB storage"
+        )
+
+        self.__products.extend([p1, p2, p3, p4, p5, p6, p7])
+
+    def get_all_products(self) -> List[Product]:
+        return self.__products
+
+    def get_product_by_id(self, product_id: int) -> Optional[Product]:
+        for product in self.__products:
+            if product.product_id == product_id:
+                return product
+        return None
+
+    def save_product(self, product: Product) -> bool:
+        if any(p.name == product.name for p in self.__products):
+            return False  # Prevent duplicate by name
+        self.__products.append(product)
+        return True
+
+    def remove_product(self, product_id: int) -> bool:
+        product = self.get_product_by_id(product_id)
+        if product:
+            self.__products.remove(product)
+            return True
+        return False
+
+    def update_price(self, product_id: int, new_price: float) -> bool:
+        product = self.get_product_by_id(product_id)
+        if product:
+            product.price = new_price
+            return True
+        return False
+
+    def get_all_categories(self) -> List[Category]:
+        categories = set(product.category for product in self.__products)
+        return list(categories)
+
+# [545,571]
+
+from enums import Role
+from models import User
+
+
+class SessionData:
+    def __init__(self):
+        self.user: User | None = None
+        self.role: Role | None = None
+        self.session_id: int | None = None
+
+    def getUser(self) -> User | None:
+        return self.user
+
+    def setSession(self, user: User):
+        self.session_id = user.user_id
+        self.user = user
+        self.role = user.role
+
+    def getRole(self) -> Role | None:
+        return self.role
+
+    def getSessionId(self) -> int | None:
+        return self.session_id
+
+    def getCurrentUser(self) -> User | None:
+        return self.user
+
+# [574,612]
+from typing import List, Optional
+from enums import Role
+from models import User
+
+class UserData:
+    def __init__(self):
+        self.__users: List[User] = []
+        self.initialize()
+
+    def initialize(self):
+        admin = User("Admin", "admin@gmail.com", 9087589692, "India", "Admin@123", Role.ADMIN)
+        customer = User("Akashh", "akashh@gmail.com", 9087589692, "India", "PassWord", Role.CUSTOMER)
+        self.__users.extend([admin, customer])
+
+    def getUsers(self) -> List[User]:
+        return self.__users
+
+    def saveUser(self, user: User) -> bool:
+        self.__users.append(user)
+        return True
+
+    def removeUser(self, user: User) -> bool:
+        self.__users.remove(user)
+        return True
+
+    def update_password(self, user_id: int, new_password: str) -> bool:
+        for user in self.__users:
+            if user.user_id == user_id:
+                user.password = new_password
+                return True
+        return False
+
+    def get_user_by_id(self, user_id: int) -> Optional[User]:
+        for user in self.__users:
+            if user.user_id == user_id:
+                return user
+        return None
+
+
+# [614,622]
+from enums.category import Category
+from enums.order_status import OrderStatus
+from enums.role import Role
+
+__all__ = [
+    "Role",
+    "Category",
+    "OrderStatus",
+]
+
+#[625,633]
+from enum import Enum
+
+class Category(Enum):
+    ELECTRONICS = "Electronics"
+    HOME_DECOR = "Home Decor"
+    STATIONARY = "Stationary"
+
+    def __str__(self) -> str:
+        return self.value
+
+from enum import Enum
+
+class OrderStatus(Enum):
+    CONFIRMED = "Confirmed"
+    IN_TRANSIT = "In Transit"
+    DELIVERED = "Delivered"
+    CANCELLED = "Cancelled"
+
+    def __str__(self)->str:
+        return self.value
+    
+from enum import Enum
+
+
+class Role(Enum):
+    ADMIN = "admin"
+    CUSTOMER = "customer"
+
+    def __str__(self) -> str:
+        return self.value
+
+from models.order import Order
+from models.product import Product
+from models.user import User
+
+__all__ = [
+    'User',
+    'Product',
+    'Order',
+]
+
+from typing import List, Tuple
+from enums import OrderStatus
+from models.product import Product
+from utils import random_number_generator_12digits
+
+
+class Order:
+    def __init__(
+        self,
+        customer_id: int,
+        products: List[Tuple[Product, int]],  # list of (Product, quantity) tuples
+        status: OrderStatus = OrderStatus.CONFIRMED
+    ):
+        self.order_id = random_number_generator_12digits()
+        self.customer_id = customer_id
+        self.products = products
+        self.status = status
+        # Calculate total considering quantity
+        self.total = sum(product.price * qty for product, qty in products)
+
+    def __str__(self):
+        product_list = ', '.join([f"{p.name} x{qty}" for p, qty in self.products])
+        return (f"Order ID: {self.order_id}\n"
+                f"Customer ID: {self.customer_id}\n"
+                f"Products: {product_list}\n"
+                f"Total: ₹{self.total:.2f}\n"
+                f"Status: {self.status.value}")
+
+import random
+from enums import Category
+from utils import random_number_generator_3digits
+
+
+class Product:
+    existing_ids = set()
+
+    def __init__(
+        self,
+        name: str,
+        price: float,
+        category: Category,
+        description: str = ""
+    ):
+        self.product_id = random_number_generator_3digits()
+        self.name = name
+        self.price = float(price)
+        self.category = category
+        self.description = description
+
+    def __str__(self):
+        return (f"Product ID: {self.product_id}, "
+                f"Name: {self.name}, "
+                f"Price: ₹{self.price:.2f}, "
+                f"Category: {self.category.value}, "
+                f"Description: {self.description}")
+
+from enums import Role
+from utils import random_number_generator_7digits
+
+
+class User:
+    def __init__(
+            self,
+            name: str = "",
+            email: str = "",
+            mobile: int = "",
+            address: str = "",
+            password: str = "",
+            role: Role = Role.CUSTOMER
+    ):
+        self.user_id = random_number_generator_7digits()
+        self.name = name
+        self.email = email
+        self.mobile = mobile
+        self.address = address
+        self.password = password
+        self.role = role
+
+    def __str__(self):
+        return (f"{self.user_id} "
+                f"{self.name} "
+                f"{self.email} "
+                f"{self.mobile} "
+                f"{self.address} "
+                f"{self.role}")
+
+from payloads.global_response import GlobalResponse
+from payloads.admin_login_request import AdminLoginRequest
+from payloads.customer_login_request import CustomerLoginRequest
+
+__all__ = [
+    "GlobalResponse",
+    "AdminLoginRequest",
+    "CustomerLoginRequest",
+]
+
+
+class AdminLoginRequest:
+    def __init__(
+            self,
+            email: str = "",
+            password: str = "",
+    ) -> None:
+        self.email = email
+        self.password = password
+
+    def __str__(self):
+        return f"email: {self.email}\npassword: {self.password}"
+
+
+class CustomerLoginRequest:
+    def __init__(
+            self,
+            customer_id: int = None,
+            password: str = "",
+    ) -> None:
+        self.customer_id = customer_id
+        self.password = password
+
+from typing import  TypeVar, Optional
+
+T = TypeVar("T")
+
+class GlobalResponse():
+
+    def __init__(
+            self,
+            data: Optional[T] = None,
+            status: bool = True,
+            message: str = ""
+    ):
+        self.data: Optional[T] = data
+        self.status: bool = status
+        self.message: str = message
+
+    def __str__(self):
+        return (f"Response("
+                f"status={self.status}, "
+                f"message='{self.message}', "
+                f"data={self.data})"
+        )
+
+from repositories.order_repo import OrderRepo
+from repositories.user_repo import UserRepo
+
+__all__ = [
+    'UserRepo',
+    'OrderRepo',
+]     
+
+from typing import List
+from configs import Database
+from models import Order
+
+class OrderRepo:
+    def __init__(self, database: Database) -> None:
+        self.__database = database
+
+    def getAllOrders(self) -> List[Order]:
+        return self.__database.order.get_all_orders()
+
+    def getOrderById(self, order_id: int) -> Order | None:
+        orders = self.getAllOrders()
+        for order in orders:
+            if order.order_id == order_id:
+                return order
+        return None
+
+    def getOrdersByCustomerId(self, customer_id: int) -> List[Order]:
+        orders = self.getAllOrders()
+        customer_orders = []
+        for order in orders:
+            if order.customer_id == customer_id:
+                customer_orders.append(order)
+        return customer_orders
+
+    def saveOrder(self, order: Order) -> bool:
+        return self.__database.order.save_order(order)
+
+    def removeOrder(self, order: Order) -> bool:
+        return self.__database.order.delete_order(order)
+
+    def updateOrder(self, updated_order: Order) -> bool:
+        orders = self.getAllOrders()
+        for idx, order in enumerate(orders):
+            if order.order_id == updated_order.order_id:
+                orders[idx] = updated_order
+                return True
+        return False
+
+from typing import List
+from configs import Database
+from enums import Role
+from models import User
+
+
+class UserRepo:
+    def __init__(self, database: Database) -> None:
+        self.__database = database
+
+    def getCustomer(self) -> List[User] :
+        users = self.__database.user.getUsers()
+        adminUsers = []
+        for user in users:
+            if user.role == Role.CUSTOMER:
+                adminUsers.append(user)
+        return adminUsers
+
+    def getUserByEmail(self, email: str) -> User | None:
+        users = self.getCustomer()
+        for user in users:
+            if user.email == email:
+                return user
+        else:
+            return None
+
+    def getUserById(self, user_id: int) -> User | None:
+        users = self.getCustomer()
+        for user in users:
+            if user.user_id == user_id:
+                return user
+        else:
+            return None
+
+    def saveUser(self, user: User) -> bool:
+        return self.__database.user.saveUser(user)
+
+    def removeUser(self, user: User) -> bool:
+        return self.__database.user.deleteUser(user)
+
+    def getAdminUsers(self) -> List[User] | None:
+        users = self.__database.user.getUsers()
+        adminUsers = []
+        for user in users:
+            if user.role == Role.ADMIN:
+                adminUsers.append(user)
+        return adminUsers
+
+    def updatePassword(self, user_id, newPassword) -> bool:
+        return self.__database.user.update_password(user_id, newPassword)
+
+from services.auth_service import AuthService
+from services.admin_service import AdminService
+from services.customer_service import CustomerService
+
+__all__ = [
+    "AuthService",
+    "AdminService",
+    "CustomerService",
+]
+
+from configs import Database
+from models import Product
+from enums import Category
+from typing import Optional, Union, List
+
+
+class AdminService:
+    def __init__(self, database: Database) -> None:
+        self.__database = database
+
+    def searchByProduct(self, query: Union[str, int]) -> List[Product]:
+        products = self.__database.product.get_all_products()
+
+        if isinstance(query, int):
+            return [product for product in products if product.product_id == query]
+        else:
+            keyword_lower = query.lower()
+            return [
+                product for product in products
+                if keyword_lower in product.name.lower() or keyword_lower in product.description.lower()
+            ]
+
+    def deleteProduct(self, product_id: int) -> bool:
+        return self.__database.product.remove_product(product_id)
+
+    def updateProduct(self, product_id: int, name: Optional[str] = None,
+                      price: Optional[float] = None,
+                      category: Optional[Category] = None,
+                      description: Optional[str] = None) -> bool:
+        product = self.__database.product.get_product_by_id(product_id)
+        if product:
+            if name: product.name = name
+            if price is not None: product.price = price
+            if category: product.category = category
+            if description: product.description = description
+            return True
+        return False
+
+    def handleAddProduct(self, name: str, price: float,
+                         category: Category, description: str) -> bool:
+        from models import Product
+        new_product = Product(name=name, price=price, category=category, description=description)
+        return self.__database.product.save_product(new_product)
+
+    def viewAllProducts(self) -> None:
+        print("-" * 120)
+        print("All Products".center(120), end="\n")
+        print("-" * 120)
+        print(f"{'Product ID':<12} | {'Product Name':<20} | {'Price ($)':<12} | {'Category':<20} | Description")
+        print("-" * 120)
+
+        products = self.__database.product.get_all_products()
+        if not products:
+            print("No products available.")
+        else:
+            for product in products:
+                print(
+                    f"{str(product.product_id).center(12)} | {product.name:<20} | ${product.price:<11.2f} | {product.category.name:<20} | {product.description}")
+
+        print("-" * 120)
+
+    def viewAllCustomers(self) -> None:
+        print("-" * 100)
+        print("All Customers".center(100), end="\n")
+        print("-" * 100)
+        print(f"{'Customer ID':<14} | {'Customer Name':<20} | {'Email':<25} | {'Mobile':<15} | Address")
+        print("-" * 100)
+
+        found = False
+        for user in self.__database.user.getUsers():
+            if user.role.name == "CUSTOMER":
+                found = True
+                print(f"{user.user_id:<14} | {user.name:<20} | {user.email:<25} | {user.mobile:<15} | {user.address}")
+
+        if not found:
+            print("No customers found.")
+
+        print("-" * 100)
+
+    def viewAllOrders(self) -> None:
+        orders = self.__database.order.get_all_orders()
+        if not orders:
+            print("No orders found.")
+            return
+
+        print("\nAll Orders")
+        print("-" * 100)
+        print(f"{'Order ID':<14} | {'Customer Name':<20} | {'Email':<25} | {'Mobile':<15} | Address")
+        print("-" * 100)
+
+        for order in orders:
+            customer = self.__database.user.get_user_by_id(order.customer_id)
+            print(
+                f"{order.order_id:<14} | {customer.name:<20} | {customer.email:<25} | {customer.mobile:<15} | {customer.address}")
+        print("-" * 100)
+
+    def searchByOrderId(self, order_id: int):
+        orders = self.__database.order.get_all_orders()
+        for order in orders:
+            if order.order_id == order_id:
+                return order  # Return the single order matching order_id
+        return None  # Return None if not found
+
+from configs import Database
+from enums import Role
+from models import User
+from payloads import AdminLoginRequest, CustomerLoginRequest
+from payloads.global_response import GlobalResponse
+from repositories import UserRepo
+
+
+class AuthService:
+    def __init__(self, database: Database) -> None:
+        self.__database = database
+        self.__user_repo = UserRepo(self.__database)
+
+    def loginAdmin(self, request: AdminLoginRequest) -> GlobalResponse:
+        adminUsers = self.__user_repo.getAdminUsers()
+        for user in adminUsers:
+            if user.email == request.email:
+                if user.password == request.password:
+                    self.__database.session.setSession(user)
+                    return GlobalResponse(user, True, "Admin login successful")
+                else:
+                    return GlobalResponse(None, False, "Invalid password")
+
+        return GlobalResponse(None, False, "Admin not found")
+
+    def loginUser(self, request: CustomerLoginRequest) -> GlobalResponse:
+        user = self.__user_repo.getUserById(request.customer_id)
+
+        if user:
+            if user.password == request.password:
+                self.__database.session.setSession(user)
+                return GlobalResponse(user, True, "Customer login successful")
+            else:
+                return GlobalResponse(None, False, "Invalid password")
+
+        return GlobalResponse(None, False, "Customer not found")
+
+
+    def registerUser(self, newUser: User) -> GlobalResponse:
+        users = self.__user_repo.getUserByEmail(newUser.email)
+        if users:
+            return GlobalResponse(None,False,"User with this email already exists")
+        self.__user_repo.saveUser(newUser)
+        return GlobalResponse(newUser,True,"User registered")
+
+from collections import defaultdict
+from models import User, Order  # Make sure Order model exists
+from utils import (
+    validate_card_number,
+    validate_card_holder_name,
+    validate_expiry_date,
+    validate_cvv,
+    validate_password,
+)
+from repositories import OrderRepo, UserRepo
+from enums import OrderStatus
+
+
+class CustomerService:
+    def __init__(self, database):
+        self.__database = database
+        self.__user_repo = UserRepo(database)   # Initialize user repo here
+        self.cart = defaultdict(int)
+        self.__order_repo = OrderRepo(database)
+
+    def viewProducts(self):
+        categories = list(self.__database.product.get_all_categories())
+        print("Categories:")
+        for idx, cat in enumerate(categories, start=1):
+            print(f"{idx}. {cat.name.title()}")
+
+        try:
+            cat_choice = int(input("Select category number (0 to cancel): ").strip())
+            if cat_choice == 0:
+                return
+            selected_cat = categories[cat_choice - 1]
+        except (ValueError, IndexError):
+            print("Invalid category choice.")
+            return
+
+        products = [p for p in self.__database.product.get_all_products() if p.category == selected_cat]
+        if not products:
+            print("No products found in this category.")
+            return
+
+        print(f"\nProducts in {selected_cat.name.title()}:")
+        print("-" * 100)
+        print(f"{'Product ID':<12} | {'Product Name':<20} | {'Price ($)':<10} | Description")
+        print("-" * 100)
+
+        for p in products:
+            print(f"{str(p.product_id).center(12)} | {p.name:<20} | ${p.price:<9.2f} | {p.description}")
+
+        print("-" * 100)
+
+        try:
+            pid = int(input("Enter product ID to add to cart (0 to cancel): ").strip())
+            if pid == 0:
+                return
+            product = next((prod for prod in products if prod.product_id == pid), None)
+            if not product:
+                print("Invalid product ID.")
+                return
+            qty = int(input("Enter quantity: ").strip())
+            if qty <= 0:
+                print("Quantity must be positive.")
+                return
+            self.add_to_cart(pid, qty)
+            print(f"Added {qty} x {product.name} to cart.")
+        except ValueError:
+            print("Invalid input.")
+
+    def add_to_cart(self, product_id: int, quantity: int):
+        self.cart[product_id] += quantity
+
+    def view_cart(self):
+        if not self.cart:
+            print("Your cart is empty.")
+            return
+
+        print("\nYour Cart:")
+        print("-" * 90)
+        print(f"{'Product ID':<12} | {'Product Name':<20} | {'Quantity':<10} | {'Price (₹)':<12} | Line Total")
+        print("-" * 90)
+
+        total = 0.0
+        for pid, qty in self.cart.items():
+            product = next((p for p in self.__database.product.get_all_products() if p.product_id == pid), None)
+            if product:
+                line_total = product.price * qty
+                total += line_total
+                print(f"{pid:<12} | {product.name:<20} | {qty:<10} | ₹{product.price:<11.2f} | ₹{line_total:.2f}")
+        print("-" * 90)
+        print(f"{'Total Amount:':>70} ₹{total:.2f}")
+
+    def remove_from_cart(self):
+        if not self.cart:
+            print("Your cart is empty.")
+            return
+        try:
+            pid = int(input("Enter product ID to remove from cart: ").strip())
+            if pid in self.cart:
+                del self.cart[pid]
+                print("Product removed from cart.")
+            else:
+                print("Product not found in cart.")
+        except ValueError:
+            print("Invalid input.")
+
+    def checkout(self):
+        if not self.cart:
+            print("Your cart is empty. Add products before checkout.")
+            return
+
+        total = 0.0
+        products_to_buy = []
+        for pid, qty in self.cart.items():
+            product = next((p for p in self.__database.product.get_all_products() if p.product_id == pid), None)
+            if product:
+                total += product.price * qty
+                products_to_buy.append((product, qty))
+
+        print("\nCheckout Summary:")
+        print("-" * 90)
+        print(f"{'Product ID':<12} | {'Product Name':<20} | {'Quantity':<10} | {'Price (₹)':<12} | Line Total")
+        print("-" * 90)
+        for product, qty in products_to_buy:
+            line_total = product.price * qty
+            print(
+                f"{product.product_id:<12} | {product.name:<20} | {qty:<10} | ₹{product.price:<11.2f} | ₹{line_total:.2f}")
+        print("-" * 90)
+        print(f"{'Total amount to pay:':>70} ₹{total:.2f}")
+        print("\nEnter payment details:")
+
+        while True:
+            card_no = input("Card Number (16 digits): ").strip()
+            if validate_card_number(card_no):
+                break
+            print("Invalid card number. Please enter a 16-digit numeric card number.")
+
+        while True:
+            card_holder = input("Card Holder Name (min 10 chars): ").strip()
+            if validate_card_holder_name(card_holder):
+                break
+            print("Invalid name. Minimum 10 characters required.")
+
+        while True:
+            expiry = input("Expiry Date (MM/YY): ").strip()
+            if validate_expiry_date(expiry):
+                break
+            print("Invalid expiry date format or expired.")
+
+        while True:
+            cvv = input("CVV (3 digits): ").strip()
+            if validate_cvv(cvv):
+                break
+            print("Invalid CVV. Must be a 3-digit number.")
+
+        print("Processing payment...")
+        print("Payment successful!")
+
+        user: User = self.__database.session.getCurrentUser()
+
+        order = Order(
+            customer_id=user.user_id,
+            products=products_to_buy,  # list of (Product, quantity) tuples
+            status=OrderStatus.CONFIRMED,
+        )
+
+        saved = self.__order_repo.saveOrder(order)
+        if saved:
+            print("\nOrder placed successfully!")
+            print("-" * 50)
+            print(f"Order ID     : {order.order_id}")
+            print(f"Amount Paid  : ${total:.2f}")
+            print("-" * 50)
+            print("Thank you for shopping with us!")
+            self.cart.clear()
+        else:
+            print("\nFailed to save order. Please contact support.")
+
+    def payment(self):
+        self.checkout()
+
+    def viewOrdersByStatus(self):
+        user: User = self.__database.session.getCurrentUser()
+        orders = self.__order_repo.getOrdersByCustomerId(user.user_id)
+
+        if not orders:
+            print("No previous orders found.")
+            return
+
+        while True:
+            print("\nView Orders by Status:")
+            print("1) Confirmed orders")
+            print("2) In Transit")
+            print("3) Delivered")
+            print("4) Cancelled")
+            print("5) Exit")
+
+            choice = input("Select an option: ").strip()
+
+            status_map = {
+                "1": OrderStatus.CONFIRMED,
+                "2": OrderStatus.IN_TRANSIT,
+                "3": OrderStatus.DELIVERED,
+                "4": OrderStatus.CANCELLED
+            }
+
+            if choice == "5":
+                print("Exiting order history view...")
+                break
+
+            selected_status = status_map.get(choice)
+            if not selected_status:
+                print("Invalid choice. Please select a valid option.")
+                continue
+
+            filtered_orders = [o for o in orders if o.status == selected_status]
+
+            if not filtered_orders:
+                print(f"No orders found with status '{selected_status.name.title()}'.")
+            else:
+                print(f"\nOrders with status '{selected_status.name.title()}':")
+                print("-" * 80)
+                print(f"{'Order ID':<14} | {'Customer Name':<20} | {'Total Items':<12} | {'Status':<15}")
+                print("-" * 80)
+                for order in filtered_orders:
+                    customer = self.__database.user.get_user_by_id(order.customer_id)
+                    total_items = sum(qty for _, qty in order.products)  # assuming products is list of (Product, qty)
+                    print(
+                        f"{order.order_id:<14} | {customer.name:<20} | {total_items:<12} | {order.status.name.title():<15}")
+                print("-" * 80)
+
+    def previousOrders(self):
+        self.viewOrdersByStatus()
+
+    def viewProfile(self):
+        user: User = self.__database.session.getCurrentUser()
+        print(f"Customer ID: {user.user_id}\n"
+              f"Name: {user.name}\n"
+              f"Email: {user.email}\n"
+              f"Update Password (Y / N): ", end="")
+        choice = input().lower()
+        if choice == "y":
+            while True:
+                newPassword = input("Enter your new Password: ")
+                if validate_password(newPassword):
+                    if self.__user_repo.updatePassword(user.user_id, newPassword):
+                        print("Password updated successfully")
+                    else:
+                        print("Password didn't update")
+                    break
+                print("Password must contain lowercase, uppercase, and alphabet characters.")
+        else:
+            return
+
+from utils.console import console
+from utils.validator import *
+from utils.random_number_generator import *
+
+__all__ = [
+    "console",
+    "validate_name",
+    "validate_email",
+    "validate_mobile",
+    "validate_address",
+    "validate_password",
+    "validate_confirm_password",
+    "random_number_generator_3digits",
+    "random_number_generator_7digits",
+    "validate_card_number",
+    "validate_cvv",
+    "validate_expiry_date",
+    "validate_card_holder_name",
+    "random_number_generator_12digits"
+]
+
+from os import *
+
+class console:
+    @staticmethod
+    def clear():
+        system('cls' if name == 'nt' else 'clear')
+
+    @staticmethod
+    def pause():
+        system('pause')
+
+
+import re
+from datetime import datetime
+
+def validate_name(name: str) -> bool:
+    return bool(re.search(r'^.{3,50}$', name))
+
+def validate_email(email: str) -> bool:
+    pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+    return bool(re.match(pattern, email))
+
+def validate_mobile(mobile: str) -> bool:
+    return bool(re.fullmatch(r"\d{10}", mobile))
+
+def validate_address(address: str) -> bool:
+    return len(address.strip()) <= 300
+
+def validate_password(password: str) -> bool:
+    has_lower = re.search(r'[a-z]', password)
+    has_upper = re.search(r'[A-Z]', password)
+    has_alpha = re.search(r'[a-zA-Z]', password)
+    return bool(has_lower and has_upper and has_alpha)
+
+def validate_confirm_password(password: str, confirm_password: str) -> bool:
+    return password == confirm_password
+
+def validate_card_number(card_number: str) -> bool:
+    # Check if card number is exactly 16 digits
+    return bool(re.fullmatch(r'\d{16}', card_number))
+
+def validate_card_holder_name(name: str) -> bool:
+    # Minimum 10 characters (allow letters, spaces, dots)
+    return bool(re.fullmatch(r'[A-Za-z\s\.]{10,}', name.strip()))
+
+def validate_expiry_date(expiry: str) -> bool:
+    # Format MM/YY and expiry date should not be in the past
+    if not re.fullmatch(r'(0[1-9]|1[0-2])/(\d{2})', expiry):
+        return False
+    try:
+        exp_month, exp_year = expiry.split('/')
+        exp_month = int(exp_month)
+        exp_year = int(exp_year)
+        # Convert 2-digit year to 4-digit (assume 2000+)
+        current_year = datetime.now().year % 100
+        current_month = datetime.now().month
+
+        # Expiry year in full
+        full_exp_year = 2000 + exp_year
+
+        # Card expiry is the last day of the month
+        exp_date = datetime(full_exp_year, exp_month, 1)
+        # Check if expiry is in future (month/year)
+        if (exp_year > current_year) or (exp_year == current_year and exp_month >= current_month):
+            return True
+        return False
+    except Exception:
+        return False
+
+def validate_cvv(cvv: str) -> bool:
+    # Exactly 3 digits
+    return bool(re.fullmatch(r'\d{3}', cvv))
+
+import random
+
+def random_number_generator_7digits():
+    number = random.randint(1000000, 9999999)
+    return number
+
+def random_number_generator_3digits():
+    number = random.randint(100, 999)
+    return number
+
+def random_number_generator_12digits() -> int:
+    return random.randint(10**11, 10**12 - 1)
+
+from configs import Database
+from controllers import AuthController
+from utils import console
+
+
+def show_main_menu():
+    console.clear()
+    print("Main Menu")
+    print("1. Login\n2. Register\n3. Exit")
+
+
+def handle_user_choice(choice: int, auth_controller : AuthController):
+    if choice == 1:
+        auth_controller.login()
+    elif choice == 2:
+        auth_controller.register()
+    elif choice == 3:
+        exit(1)
+    else:
+        print("Invalid choice")
+
+
+class Main:
+    def __init__(self) -> None:
+        self.__database: Database = Database()
+        self.__auth_controller = AuthController(self.__database)
+
+    def main(self) -> None:
+        while True:
+            try:
+                show_main_menu()
+                for i in self.__database.user.getUsers():
+                    print(i)
+                choice = int(input("Enter your choice: ").strip())
+                handle_user_choice(choice,self.__auth_controller)
+            except ValueError:
+                print("Please enter a valid numeric option.")
+            except (KeyboardInterrupt, EOFError):
+                print("\nApplication interrupted. Press Enter to exit...")
+                exit(0)
+
+if __name__ == '__main__':
+    app = Main()
+    app.main()
+
+from payloads.global_response import GlobalResponse
+from payloads.admin_login_request import AdminLoginRequest
+from payloads.customer_login_request import CustomerLoginRequest
+
+__all__ = [
+    "GlobalResponse",
+    "AdminLoginRequest",
+    "CustomerLoginRequest",
+]
+
+lineDict = {
+    "configs/__init__.py": [2, 6],
+    "configs/database.py": [9, 18],
+    
+    "controllers/__init__.py": [21, 29],
+    "controllers/admin_controller.py": [32, 188],
+    "controllers/auth_controller.py": [191, 354],
+    "controllers/customer_controller.py":[356,397],
+    
+    "databases/__init__.py":[399,410],
+    "databases/order_data.py":[412,454],
+    "databases/product_data.py":[456,543],
+    "databases/session_data.py":[545,572],
+    "databases/user_data.py": [574,612],
+    
+     "enums/__init__.py":[614,622],
+     "enums/category.py":[625,633],
+     "enums/order_status.py":[635,644],
+     "enums/role.py":[646,654],
+    
+    "models/__init__.py":[656,664],
+    "models/order.py":[666,693],
+    "models/product.py":[694,721],
+    "models/user.py":[722,751],
+    
+    "payloads/user.py":[752,761],
+    "payloads/admin_login_request.py":[762,774],
+    "payloads/customer_login_request.py":[775,784],
+    "payloads/global_response.py":[785,807],
+    
+    "repositories/__init__.py":[808,815],
+    "repositories/order_repo.py":[816,855],
+    "repositories/user_repo.py":[856,906],
+    
+    "services/__init__.py":[907,916],
+    "services/admin_service.py":[917,1019],
+    "services/auth_service.py":[1020,1064],
+    "services/customer_service.py":[1065,1316],
+    
+    "utils/__init__.py":[1317,1336],
+    "utils/console.py":[1338,1348],
+    "utils/validator.py":[1349,1410],
+    "utils/random_number_generator.py":[1411,1423],
+    
+    "./main.py":[1424,1468],
+    "payloads/__init__.py":[1469,1477],
+    
+    
+}
+ 
+with open('fileContent.txt', 'r') as f:
+    lines = f.readlines()
+
+for new_filename, (start, end) in lineDict.items(): 
+    content_to_write = lines[start-1:end]
+    import os
+    os.makedirs(os.path.dirname(new_filename), exist_ok=True)
+    with open(new_filename, 'w') as f:
+        f.writelines(content_to_write)
+
+    print(f"Wrote lines {start}-{end} to {new_filename}")
