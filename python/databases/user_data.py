@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from enums import Role
 from models import User
 
@@ -29,3 +29,9 @@ class UserData:
                 user.password = new_password
                 return True
         return False
+
+    def get_user_by_id(self, user_id: int) -> Optional[User]:
+        for user in self.__users:
+            if user.user_id == user_id:
+                return user
+        return None
